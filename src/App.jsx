@@ -15,6 +15,10 @@ import {
   AlertCircle,
   Info,
   CheckCircle2,
+  BadgeCheck,
+  Building2,
+  ArrowRight,
+  ShieldCheck,
   X,
   Sparkles,
   Eye,
@@ -45,7 +49,7 @@ const TRANSLATIONS = {
     pleaseSignIn: 'Please sign in with your parish credentials to continue.',
     emailLabel: 'Email or Username',
     passwordLabel: 'Password',
-    continueWithEmail: 'Continue to Portal',
+    continueWithEmail: 'Continue to Dashboard',
     simulationTitle: 'Quick Select Preset Role',
     staffRequester: 'Staff / Requester',
     parishApprover: 'Parish Approver',
@@ -90,7 +94,7 @@ const TRANSLATIONS = {
     pleaseSignIn: 'Mag-sign in gamit ang parish credentials.',
     emailLabel: 'Email o Username',
     passwordLabel: 'Password',
-    continueWithEmail: 'Magpatuloy sa Portal',
+    continueWithEmail: 'Magpatuloy sa Dashboard',
     simulationTitle: 'Piliin ang Role',
     staffRequester: 'Staff / Humihiling',
     parishApprover: 'Tagapag-apruba',
@@ -130,7 +134,7 @@ const TRANSLATIONS = {
     pleaseSignIn: 'Palihug sulod gamit ang parish credentials.',
     emailLabel: 'Email o Username',
     passwordLabel: 'Password',
-    continueWithEmail: 'Padayon sa Portal',
+    continueWithEmail: 'Padayon sa Dashboard',
     simulationTitle: 'Paspas nga Pagpili sa Role',
     staffRequester: 'Staff / Requester',
     parishApprover: 'Parish Approver',
@@ -305,6 +309,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginRole, setLoginRole] = useState('staff');
   const [loginEmail, setLoginEmail] = useState('requester@test.com');
   const [loginPassword, setLoginPassword] = useState('Password123!');
   const [showPassword, setShowPassword] = useState(false);
@@ -314,6 +319,7 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [activePage, setActivePage] = useState('dashboard');
   const [publicView, setPublicView] = useState('home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [approvalTab, setApprovalTab] = useState('queue');
   const [activeTab, setActiveTab] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -377,12 +383,19 @@ function App() {
     setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 4200);
   };
 
-  const handlePresetSelect = (roleKey) => {
+  const loginRoleLabel = {
+    staff: 'Staff Access',
+    approver: 'Approver Access',
+    admin: 'Admin Access',
+  }[loginRole] || 'Portal Access';
+
+  const handleRoleSelect = (roleKey) => {
     const acc = PRESET_ACCOUNTS[roleKey];
+    setLoginRole(roleKey);
     setLoginEmail(acc.email);
     setLoginPassword(acc.password);
     setValidationErrors({});
-    showToast(`${t('simulationTitle')}: ${acc.role}`, 'info');
+    showToast(`Selected ${acc.role} sign-in`, 'info');
   };
 
   const handleExploreFacilities = (e) => {
@@ -408,9 +421,22 @@ function App() {
       (acc) => acc.email.toLowerCase() === loginEmail.trim().toLowerCase() && acc.password === loginPassword
     );
 
+    const expectedRoleMap = {
+      staff: 'Staff Requester',
+      approver: 'Parish Approver',
+      admin: 'Administrator',
+    };
+
     if (!matchedUser) {
       setValidationErrors({ auth: 'Access denied. Credentials were not recognized.' });
       showToast('Authentication failed.', 'error');
+      setLoading(false);
+      return;
+    }
+
+    if (matchedUser.role !== expectedRoleMap[loginRole]) {
+      setValidationErrors({ auth: 'This sign-in path does not match the selected access type.' });
+      showToast('Selected role does not match the account.', 'error');
       setLoading(false);
       return;
     }
@@ -1160,46 +1186,65 @@ function App() {
 
   const renderExploreFacilitiesPage = () => (
     <div className="space-y-8 animate-fade-in">
-      <div className="rounded-[40px] border border-slate-200 bg-white/95 p-8 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="flex flex-col gap-6">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.35em] font-black text-[#0F3B8C] dark:text-[#7DD3FC]">Explore Facilities</p>
-            <h2 className={`mt-3 text-3xl sm:text-4xl font-black ${textHeadingClass}`}>Public access guide for venue use, requirements, and booking readiness.</h2>
-            <p className={`mt-3 text-sm leading-relaxed max-w-3xl ${textMutedClass}`}>This page is a standalone public landing page. It explains what guests and event organizers need to know before signing in, without exposing protected admin or facility management pages.</p>
+      <div className={`rounded-[36px] border p-8 shadow-2xl transition-all duration-300 hover:-translate-y-1 ${theme === 'dark' ? 'border-zinc-800 bg-zinc-950/90' : 'border-slate-200 bg-white/95'}`}>
+        <div className="absolute inset-0 overflow-hidden rounded-[36px] pointer-events-none">
+          <div className={`absolute -top-14 left-10 h-28 w-28 rounded-full blur-3xl opacity-40 ${theme === 'dark' ? 'bg-[#0F3B8C]' : 'bg-[#BFDBFE]'}`} />
+          <div className={`absolute bottom-0 right-0 h-36 w-36 rounded-full blur-3xl opacity-30 ${theme === 'dark' ? 'bg-[#00A859]' : 'bg-emerald-200'}`} />
+        </div>
+
+        <div className="relative z-10 flex flex-col gap-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl space-y-3">
+              <p className="text-[10px] uppercase tracking-[0.35em] font-black text-[#0F3B8C] dark:text-[#7DD3FC]">Explore Facilities</p>
+              <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black leading-tight ${textHeadingClass}`}>A polished public guide for venue use, readiness, and booking confidence.</h2>
+              <p className={`text-sm leading-relaxed max-w-2xl ${textMutedClass}`}>This page is designed to feel welcoming and clear for guests and requesters, with a brighter layout, smoother motion, and clearer action paths before anyone signs in.</p>
+            </div>
+            <div className={`rounded-3xl border px-4 py-3 text-xs font-black uppercase tracking-[0.25em] ${theme === 'dark' ? 'border-zinc-800 bg-zinc-900/80 text-zinc-200' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+              Public reference view
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-[11px] uppercase font-black text-zinc-500">Venue readiness</p>
-              <p className="mt-3 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">See capacity, availability windows, and the types of parish events supported by each facility.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-[11px] uppercase font-black text-zinc-500">Booking flow</p>
-              <p className="mt-3 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">Learn the process for submitting a DSR, assigning an approver, and receiving a decision.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-[11px] uppercase font-black text-zinc-500">Public-only</p>
-              <p className="mt-3 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">No portal actions are available here until a user signs in. This is only a reference page.</p>
-            </div>
+            {[
+              { title: 'Venue readiness', body: 'See capacity, availability windows, and the types of parish events supported by each facility.', icon: Building2, accent: 'text-[#0F3B8C] dark:text-sky-300' },
+              { title: 'Booking flow', body: 'Learn the process for submitting a DSR, assigning an approver, and receiving a decision.', icon: Calendar, accent: 'text-[#00A859] dark:text-emerald-300' },
+              { title: 'Public only', body: 'No protected actions appear here until a user signs in, keeping the experience safe and easy to browse.', icon: ShieldCheck, accent: 'text-[#B8860B] dark:text-amber-300' },
+            ].map((item, index) => (
+              <article key={item.title} className={`group rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${theme === 'dark' ? 'border-zinc-800 bg-zinc-900/80' : 'border-slate-200 bg-slate-50/90'}`} style={{ animationDelay: `${index * 80}ms` }}>
+                <div className="flex items-start justify-between gap-3">
+                  <item.icon className={`w-5 h-5 ${item.accent}`} />
+                  <span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.24em] ${theme === 'dark' ? 'bg-zinc-800 text-zinc-300' : 'bg-white text-slate-500'}`}>Guide {index + 1}</span>
+                </div>
+                <h3 className={`mt-4 text-sm font-black ${textHeadingClass}`}>{item.title}</h3>
+                <p className={`mt-2 text-[13px] leading-relaxed ${textMutedClass}`}>{item.body}</p>
+              </article>
+            ))}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <h3 className="text-sm font-black mb-3 text-[#0F3B8C] dark:text-sky-300">Top guidance</h3>
-              <ul className="space-y-3 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">
-                <li>• Confirm your event type and expected attendance before requesting a venue.</li>
-                <li>• Check approved schedules and avoid heavily booked dates.</li>
-                <li>• Prepare the required signed letter and event summary for faster approval.</li>
-              </ul>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <h3 className="text-sm font-black mb-3 text-[#0F3B8C] dark:text-sky-300">Ready to sign in?</h3>
-              <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">If you already have an account, use the button below to sign in and access the booking portal. Otherwise, review the guidance first and then sign in when ready.</p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button onClick={() => { setPublicView('home'); showToast('Returned to landing page.', 'info'); }} className="px-5 py-3 rounded-xl border border-slate-300 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">Back to Home</button>
-                <button onClick={() => { setShowLoginModal(true); setValidationErrors({}); }} className="px-5 py-3 rounded-xl bg-[#0F3B8C] text-sm font-bold text-white hover:bg-[#0d3a79]">Sign in to Request</button>
+          <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+            <article className={`rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 ${theme === 'dark' ? 'border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900' : 'border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100'}`}>
+              <div className="mb-4 flex items-center gap-2 text-[#0F3B8C] dark:text-sky-300">
+                <BadgeCheck className="w-4 h-4" />
+                <h3 className="text-sm font-black">Top guidance</h3>
               </div>
-            </div>
+              <ul className="space-y-3 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+                <li className="rounded-2xl border border-transparent p-3 transition hover:border-[#00A859]/30 hover:bg-emerald-500/5">• Confirm your event type and expected attendance before requesting a venue.</li>
+                <li className="rounded-2xl border border-transparent p-3 transition hover:border-[#00A859]/30 hover:bg-emerald-500/5">• Check approved schedules early and avoid heavily booked dates.</li>
+                <li className="rounded-2xl border border-transparent p-3 transition hover:border-[#00A859]/30 hover:bg-emerald-500/5">• Prepare the signed letter and event summary to keep your request smooth.</li>
+              </ul>
+            </article>
+
+            <article className={`rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 ${theme === 'dark' ? 'border-zinc-800 bg-gradient-to-br from-[#0F3B8C]/10 via-zinc-950 to-[#00A859]/10' : 'border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-50'}`}>
+              <div className="mb-4 flex items-center gap-2 text-[#0F3B8C] dark:text-sky-300">
+                <Sparkles className="w-4 h-4" />
+                <h3 className="text-sm font-black">Ready to sign in?</h3>
+              </div>
+              <p className={`text-[13px] leading-relaxed ${textMutedClass}`}>If you already have an account, use the button below to enter the booking portal. Otherwise, review the guidance first and then sign in when ready.</p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button onClick={() => { setPublicView('home'); showToast('Returned to landing page.', 'info'); }} className={`px-5 py-3 rounded-xl border text-sm font-bold transition-all hover:-translate-y-0.5 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-950 text-zinc-100 hover:bg-zinc-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>Back to Home</button>
+                <button onClick={() => { setShowLoginModal(true); setValidationErrors({}); }} className="group flex items-center gap-2 px-5 py-3 rounded-xl bg-[#0F3B8C] text-sm font-bold text-white shadow-xl transition-all hover:-translate-y-0.5 hover:bg-[#0d3a79]">Sign in to Request <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></button>
+              </div>
+            </article>
           </div>
         </div>
       </div>
@@ -1219,7 +1264,7 @@ function App() {
                 <h3 className={`text-sm font-black ${textHeadingClass}`}>Admin Statistics</h3>
                 <p className={`text-[11px] ${textMutedClass}`}>Approval workload, request trends, and venue demand for the portal.</p>
               </div>
-              <button onClick={() => showToast('Admin dashboard refreshed.', 'info')} className="px-4 py-2 rounded-xl bg-[#0F3B8C] text-white text-[10px] font-black">Refresh</button>
+              <button onClick={() => showToast('Admin dashboard refreshed.', 'info')} className="animate-soft-pop px-4 py-2 rounded-xl bg-[#0F3B8C] text-white text-[10px] font-black shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1D4ED8] active:scale-95">Refresh</button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
               <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">Total Requests</p><h3 className="text-2xl font-black">{bookings.length}</h3></div>
@@ -1270,7 +1315,7 @@ function App() {
                 <h3 className={`text-sm font-black ${textHeadingClass}`}>Pending Approval Queue</h3>
                 <p className={`text-[11px] ${textMutedClass}`}>Review the next DSRs waiting for assignment or decision.</p>
               </div>
-              <button onClick={() => setActivePage('approvals')} className="px-4 py-2 rounded-xl bg-[#0F3B8C] text-white text-[10px] font-black">Open Full Queue</button>
+              <button onClick={() => setActivePage('approvals')} className="animate-soft-pop px-4 py-2 rounded-xl bg-[#0F3B8C] text-white text-[10px] font-black shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1D4ED8] active:scale-95">Open Full Queue</button>
             </div>
             {pendingRequests.length === 0 ? (
               <p className={`text-[10px] ${textMutedClass}`}>No pending approvals are waiting right now.</p>
@@ -1284,7 +1329,7 @@ function App() {
                         <h4 className={`text-sm font-black truncate ${textHeadingClass}`}>{b.venue}</h4>
                         <p className={`text-[10px] ${textMutedClass}`}>{b.ministry} • {b.date} • {b.time}</p>
                       </div>
-                      <button onClick={() => { setSelectedBooking(b); setActivePage('approvals'); }} className="px-3 py-2 rounded-xl bg-[#00A859] text-white text-[10px] font-black">Review</button>
+                      <button onClick={() => { setSelectedBooking(b); setActivePage('approvals'); }} className="animate-soft-pop px-3 py-2 rounded-xl bg-[#00A859] text-white text-[10px] font-black shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-600 active:scale-95">Review</button>
                     </div>
                   </div>
                 ))}
@@ -1613,8 +1658,8 @@ function App() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">Total Actions Logged</p><h3 className="text-2xl font-black">{filteredActions.length}</h3></div>
           <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">Requests Submitted</p><h3 className="text-2xl font-black">{bookings.length}</h3></div>
-          <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">Email Notifications</p><h3 className="text-2xl font-black">{notifications.length}</h3></div>
           <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">Active Venues</p><h3 className="text-2xl font-black">{venues.length}</h3></div>
+          <div className={`p-4 rounded-2xl ${containerClass}`}><p className="text-[10px] uppercase font-bold text-zinc-500">System Status</p><h3 className="text-2xl font-black">Live</h3></div>
         </div>
 
         <div className={`border rounded-3xl p-5 ${containerClass} print-only-section`}>
@@ -1663,7 +1708,7 @@ function App() {
 
         {showUserModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/75 backdrop-blur-sm">
-            <div className={`w-full max-w-2xl rounded-3xl border ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'} shadow-2xl`}> 
+            <div className={`animate-soft-pop w-full max-w-2xl rounded-3xl border ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'} shadow-2xl`}>
               <div className={`flex items-center justify-between p-5 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-slate-200'}`}>
                 <div>
                   <h3 className="text-lg font-black">{userEditId ? 'Edit User' : 'Create New User'}</h3>
@@ -1707,37 +1752,6 @@ function App() {
             </div>
           </div>
         )}
-
-        <div className={`border rounded-3xl p-5 ${containerClass}`}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-            <div>
-              <h3 className={`text-sm font-black ${textHeadingClass}`}>Email Communications</h3>
-              <p className={`text-xs ${textMutedClass}`}>Send notification messages to staff, approvers, or all users.</p>
-            </div>
-            <span className="text-[10px] uppercase font-black px-3 py-1 rounded-full bg-[#0F3B8C]/10 text-[#0F3B8C]">Mock Email Service</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-            <select value={emailRecipient} onChange={(e) => setEmailRecipient(e.target.value)} className={`border rounded-xl px-3 py-2 text-xs outline-none ${inputClass}`}>
-              <option>All Users</option>
-              {users.map((u) => <option key={u.email}>{u.email}</option>)}
-            </select>
-            <div className="md:col-span-2">
-              <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={3} placeholder="Write your message here..." className={`w-full border rounded-2xl px-3 py-2 text-xs outline-none ${inputClass}`} />
-            </div>
-          </div>
-          <button onClick={handleSendNotification} className="px-5 py-3 rounded-2xl bg-[#0F3B8C] text-white text-xs font-black">Send Notification</button>
-          {notifications.length > 0 && (
-            <div className="mt-5 space-y-3">
-              <h4 className="text-xs font-black uppercase text-zinc-500">Recent Notifications</h4>
-              {notifications.slice(0, 5).map((note) => (
-                <div key={note.id} className="rounded-2xl border p-3 bg-zinc-900/60 border-zinc-800 text-[10px]">
-                  <div className="flex items-center justify-between gap-2 mb-2"><span className="font-black">{note.recipient}</span><span className="text-zinc-400">{note.date}</span></div>
-                  <p>{note.message}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div className={`border rounded-3xl p-5 ${containerClass} print-only-section`}>
           <h3 className={`text-sm font-black mb-4 ${textHeadingClass}`}>Venue Management</h3>
@@ -1881,34 +1895,84 @@ function App() {
         ))}
       </div>
 
-      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between transition-colors ${theme === 'dark' ? 'bg-[#030712]/80 border-zinc-900' : 'bg-white/85 border-slate-200'}`}>
-        <div className="flex items-center gap-3">
-          {renderSeal()}
-          <div>
-            <h1 className="font-bold text-sm tracking-wide flex items-center gap-2"><span className={textHeadingClass}>San Pedro Cathedral</span><span className="text-[10px] bg-[#00A859]/10 text-[#00A859] px-2 py-0.5 rounded-full font-bold border border-[#00A859]/20">DSR Live</span></h1>
-            <p className="text-[10px] text-zinc-400 font-medium">Venue & Facilities Management</p>
+      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-4 py-4 sm:px-6 transition-colors ${theme === 'dark' ? 'bg-[#030712]/80 border-zinc-900' : 'bg-white/85 border-slate-200'}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            {renderSeal()}
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-2 text-sm font-bold tracking-wide"><span className={textHeadingClass}>San Pedro Cathedral</span><span className="rounded-full border border-[#00A859]/20 bg-[#00A859]/10 px-2 py-0.5 text-[10px] font-bold text-[#00A859]">DSR Live</span></h1>
+              <p className="text-[10px] font-medium text-zinc-400">Venue & Facilities Management</p>
+            </div>
           </div>
+
+          <div className="hidden items-center gap-3 sm:flex sm:gap-4">
+            <div className="relative flex items-center gap-1 rounded-xl border border-slate-200 bg-zinc-900/10 p-1 dark:border-zinc-850 dark:bg-zinc-800/40">
+              <Languages className="mx-1 h-3.5 w-3.5 text-slate-400" />
+              <select value={lang} onChange={(e) => setLang(e.target.value)} className="cursor-pointer border-none bg-transparent pr-1 text-[11px] font-bold text-slate-700 outline-none dark:text-zinc-200">
+                <option value="en" className="text-zinc-900">English</option>
+                <option value="tl" className="text-zinc-900">Tagalog</option>
+                <option value="ceb" className="text-zinc-900">Cebuano</option>
+              </select>
+            </div>
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-xl border border-slate-200 bg-zinc-900/10 p-2 text-slate-500 hover:text-slate-800 dark:border-zinc-850 dark:bg-zinc-800/40 dark:text-zinc-400 dark:hover:text-white">
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-[#B8860B] dark:text-amber-300" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            </button>
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex flex-col items-end text-xs"><span className={`font-bold ${textHeadingClass}`}>{currentUser?.name}</span><span className="text-[10px] uppercase tracking-wider text-[#B8860B] dark:text-[#FFD700] font-bold">{currentUser?.role}</span></div>
+                <button onClick={handleLogout} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900/10 hover:text-red-500 dark:hover:bg-zinc-900"><LogOut className="h-4 w-4" /></button>
+              </div>
+            ) : <button onClick={() => { setShowLoginModal(true); setValidationErrors({}); }} className="rounded-full bg-[#0F3B8C] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#1D4ED8]">{t('signIn')}</button>}
+          </div>
+
+          <button
+            type="button"
+            aria-label="Toggle navigation"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 p-2 text-slate-700 shadow-sm transition-all duration-200 hover:scale-105 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900/90 dark:text-zinc-100 dark:hover:bg-zinc-800 sm:hidden"
+          >
+            <span className="relative flex h-4 w-4 flex-col justify-between">
+              <span className={`block h-0.5 rounded-full bg-current transition-all duration-300 ${mobileMenuOpen ? 'translate-y-[6px] rotate-45' : ''}`} />
+              <span className={`block h-0.5 rounded-full bg-current transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : 'opacity-100'}`} />
+              <span className={`block h-0.5 rounded-full bg-current transition-all duration-300 ${mobileMenuOpen ? '-translate-y-[6px] -rotate-45' : ''}`} />
+            </span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="relative flex items-center gap-1 bg-zinc-900/10 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-850 rounded-xl p-1">
-            <Languages className="w-3.5 h-3.5 text-slate-400 mx-1" />
-            <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-transparent border-none text-[11px] font-bold outline-none cursor-pointer pr-1 text-slate-700 dark:text-zinc-200">
-              <option value="en" className="text-zinc-900">English</option>
-              <option value="tl" className="text-zinc-900">Tagalog</option>
-              <option value="ceb" className="text-zinc-900">Cebuano</option>
-            </select>
-          </div>
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-xl bg-zinc-900/10 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-850 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white">
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-[#B8860B] dark:text-amber-300" /> : <Moon className="w-4 h-4 text-slate-700" />}
-          </button>
-          {isLoggedIn ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex flex-col items-end text-xs"><span className={`font-bold ${textHeadingClass}`}>{currentUser?.name}</span><span className="text-[10px] text-[#B8860B] dark:text-[#FFD700] uppercase font-bold tracking-wider">{currentUser?.role}</span></div>
-              <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-900/10 dark:hover:bg-zinc-900 rounded-lg"><LogOut className="w-4 h-4" /></button>
+        {mobileMenuOpen && (
+          <div className="mt-3 rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/95 sm:hidden animate-fade-in">
+            <div className="space-y-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/80">
+                <label className="mb-1 block text-[10px] uppercase tracking-[0.25em] text-zinc-500">Language</label>
+                <select value={lang} onChange={(e) => { setLang(e.target.value); setMobileMenuOpen(false); }} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+                  <option value="en">English</option>
+                  <option value="tl">Tagalog</option>
+                  <option value="ceb">Cebuano</option>
+                </select>
+              </div>
+
+              <button onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setMobileMenuOpen(false); }} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-xs font-bold text-slate-700 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-100">
+                <span>Theme</span>
+                {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-300" /> : <Moon className="h-4 w-4 text-slate-700" />}
+              </button>
+
+              {isLoggedIn ? (
+                <>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-100">
+                    <p className="font-black">{currentUser?.name}</p>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-zinc-500">{currentUser?.role}</p>
+                  </div>
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex w-full items-center justify-between rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-left text-xs font-bold text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                    <span>Sign out</span>
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { setShowLoginModal(true); setValidationErrors({}); setMobileMenuOpen(false); }} className="w-full rounded-2xl bg-[#0F3B8C] px-4 py-2.5 text-xs font-black text-white hover:bg-[#1D4ED8]">{t('signIn')}</button>
+              )}
             </div>
-          ) : <button onClick={() => { setShowLoginModal(true); setValidationErrors({}); }} className="px-4 py-1.5 rounded-full bg-[#0F3B8C] hover:bg-[#1D4ED8] text-xs font-bold text-white">{t('signIn')}</button>}
-        </div>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 relative z-10">
@@ -2120,8 +2184,8 @@ function App() {
                 
                 {/* Title */}
                 <div>
-                  <h3 className="text-xl font-bold tracking-tight text-white">{t('welcomeLuma')}</h3>
-                  <p className="text-xs text-zinc-400 mt-1">{t('pleaseSignIn')}</p>
+                  <h3 className="text-xl font-bold tracking-tight text-white">Sign in as {loginRoleLabel}</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Use the selected access type to continue into the parish portal.</p>
                 </div>
 
                 {/* Core auth error banners */}
@@ -2163,9 +2227,6 @@ function App() {
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{t('passwordLabel')}</label>
-                      <a href="#reset" onClick={(e) => { e.preventDefault(); showToast("Recovery message transmitted.", "info"); }} className="text-[11px] text-[#00A859] hover:underline font-bold">
-                        Forgot?
-                      </a>
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-zinc-500" />
@@ -2211,40 +2272,37 @@ function App() {
                         Verifying parish credentials...
                       </span>
                     ) : (
-                      <span>{t('continueWithEmail')}</span>
+                      <span>Continue to Dashboard</span>
                     )}
                   </button>
 
                 </form>
 
-                {/* Preset Testing Roles */}
+                {/* Access Type Selection */}
                 <div className="space-y-2 pt-4 border-t border-zinc-900">
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">{t('simulationTitle')}</span>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => handlePresetSelect('staff')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-zinc-800 text-[11px] font-bold text-zinc-200 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <User className="w-4 h-4 text-zinc-400" /> {t('staffRequester')} (requester@test.com)
-                  </button>
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Choose sign-in access</span>
 
-                  <button 
-                    type="button"
-                    onClick={() => handlePresetSelect('approver')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-zinc-800 text-[11px] font-bold text-zinc-200 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Shield className="w-4 h-4 text-[#00A859]" /> {t('parishApprover')} (approver@test.com)
-                  </button>
-
-                  <button 
-                    type="button"
-                    onClick={() => handlePresetSelect('admin')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-zinc-800 text-[11px] font-bold text-zinc-200 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-400" /> {t('administrator')} (admin@sanpedro.cathedral.org)
-                  </button>
-
+                  {[
+                    { key: 'staff', label: 'Staff Login', subtitle: 'Requester / Staff access', icon: User, active: 'text-zinc-200', badge: 'bg-zinc-800' },
+                    { key: 'approver', label: 'Approver Login', subtitle: 'Parish approval access', icon: Shield, active: 'text-emerald-200', badge: 'bg-emerald-950/60 border-emerald-800/50' },
+                    { key: 'admin', label: 'Admin Login', subtitle: 'Administrator dashboard access', icon: Sparkles, active: 'text-amber-100', badge: 'bg-amber-500/10 border-amber-500/30' },
+                  ].map(({ key, label, subtitle, icon: Icon, active, badge }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleRoleSelect(key)}
+                      className={`w-full rounded-xl border p-3 text-left transition-all ${loginRole === key ? `border-[#00A859]/60 ${badge}` : 'border-zinc-800 bg-[#18181b] hover:bg-zinc-800'} ${active}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-4 h-4 ${loginRole === key ? 'text-[#00A859]' : 'text-zinc-400'}`} />
+                          <span className="text-[11px] font-bold">{label}</span>
+                        </div>
+                        {loginRole === key && <span className="text-[10px] uppercase tracking-widest text-[#00A859] font-black">Selected</span>}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 mt-1">{subtitle}</p>
+                    </button>
+                  ))}
                 </div>
 
                 <div className="text-center pt-2">

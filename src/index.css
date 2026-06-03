@@ -16,3 +16,23 @@ html, body {
 #root {
   min-height: 100vh;
 }
+
+@keyframes soft-pop {
+  0% { transform: scale(0.96); opacity: 0; }
+  60% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes soft-glow {
+  0% { box-shadow: 0 0 0 rgba(15, 59, 140, 0); }
+  50% { box-shadow: 0 10px 30px rgba(15, 59, 140, 0.18); }
+  100% { box-shadow: 0 0 0 rgba(15, 59, 140, 0); }
+}
+
+.animate-soft-pop {
+  animation: soft-pop 220ms ease-out;
+}
+
+.animate-soft-glow {
+  animation: soft-glow 420ms ease-out;
+}
